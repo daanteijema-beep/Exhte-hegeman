@@ -223,9 +223,16 @@ export async function fetchInstagram(range: string): Promise<{
   metrics: MetricRow[];
   posts: Array<Record<string, unknown>>;
 }> {
+  // Instagram heeft een 30-dagen limiet op follower_count_1d.
+  // Voor langere ranges: clamp die specifieke velden.
+  const isLongRange =
+    /^last_(3[1-9]|[4-9]\d|\d{3,})d/.test(range) ||
+    /^(last_year|last_2years|this_year)/.test(range);
+  const fields = isLongRange
+    ? "date,followers_count,reach_1d,media_id,media_caption,media_type,media_product_type,media_permalink,media_like_count,media_comments_count,media_views,media_reach,media_engagement,media_saved,media_shares"
+    : "date,followers_count,follower_count_1d,reach_1d,impressions_1d,profile_views_1d,media_id,media_caption,media_type,media_product_type,media_permalink,media_like_count,media_comments_count,media_views,media_reach,media_engagement,media_saved,media_shares";
   const data = (await fetchWindsor("instagram", {
-    fields:
-      "date,followers_count,follower_count_1d,reach_1d,impressions_1d,profile_views_1d,media_id,media_caption,media_type,media_product_type,media_permalink,media_like_count,media_comments_count,media_views,media_reach,media_engagement,media_saved,media_shares",
+    fields,
     date_preset: range,
     account_id: "17841478431768012",
   })) as IgRow[];
