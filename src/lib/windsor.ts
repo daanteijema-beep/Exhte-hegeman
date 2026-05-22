@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-const API_BASE = "https://api.windsor.ai";
+const API_BASE = "https://connectors.windsor.ai";
 
 function hashShort(s: string): string {
   return createHash("sha1").update(s).digest("hex").slice(0, 10);
