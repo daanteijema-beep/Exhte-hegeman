@@ -1,12 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { VacatureRow } from "./VacatureRow";
 import { EmptyState } from "./EmptyState";
 import type { Vacature, WerkzoekenTijdreeks } from "@/lib/supabase/types";
-
-type StatusFilter = "all" | "active" | "archived";
-type SortKey = "newest" | "oldest" | "clicks" | "pageviews" | "longest";
+import { computeUrgency } from "@/lib/brandos/urgency";
 
 export function VacaturesTable({
   vacatures,
@@ -15,72 +14,46 @@ export function VacaturesTable({
   vacatures: Vacature[];
   tijdreeks: WerkzoekenTijdreeks[];
 }) {
-  const [status, setStatus] = useState<StatusFilter>("active");
-  const [sort, setSort] = useState<SortKey>("newest");
+  const params = useSearchParams();
+  const deptFilter = params.getAll("dept");
+  const locFilter = params.getAll("loc");
+  const empFilter = params.getAll("emp");
+  const q = params.get("q")?.toLowerCase() ?? "";
 
   const filtered = useMemo(() => {
-    let arr = [...vacatures];
-    if (status === "active")
-      arr = arr.filter((v) => v.status === "published");
-    if (status === "archived")
+    let arr = vacatures.filter((v) => v.status === "published");
+    if (deptFilter.length)
+      arr = arr.filter((v) => v.department && deptFilter.includes(v.department));
+    if (locFilter.length)
+      arr = arr.filter((v) => v.location && locFilter.includes(v.location));
+    if (empFilter.length)
       arr = arr.filter(
-        (v) => v.status === "archived" || v.status === "closed"
+        (v) => v.employment_type && empFilter.includes(v.employment_type)
       );
-    if (sort === "newest")
-      arr.sort(
-        (a, b) =>
-          (b.published_at ?? "").localeCompare(a.published_at ?? "")
-      );
-    if (sort === "oldest")
-      arr.sort(
-        (a, b) =>
-          (a.published_at ?? "").localeCompare(b.published_at ?? "")
-      );
-    if (sort === "clicks")
-      arr.sort((a, b) => (b.wz_clicks ?? 0) - (a.wz_clicks ?? 0));
-    if (sort === "pageviews")
-      arr.sort((a, b) => (b.web_pageviews ?? 0) - (a.web_pageviews ?? 0));
-    if (sort === "longest")
-      arr.sort((a, b) => (b.dagen_open ?? 0) - (a.dagen_open ?? 0));
+    if (q) arr = arr.filter((v) => v.title.toLowerCase().includes(q));
+    arr.sort((a, b) =>
+      (b.web_last_seen ?? "").localeCompare(a.web_last_seen ?? "")
+    );
     return arr;
-  }, [vacatures, status, sort]);
+  }, [vacatures, deptFilter, locFilter, empFilter, q]);
 
   if (vacatures.length === 0) {
     return (
       <EmptyState
         title="Geen vacatures geïngest"
         message="Trigger /api/ingest/recruitee en /api/ingest/werkzoeken via de Bedrijf pagina, of voeg de API tokens toe in Vercel env vars."
-        hint="bron: v_vacatures"
+        hint="bron: v_vacatures_with_urgency"
       />
     );
   }
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <FilterGroup
-          label="Status"
-          value={status}
-          options={[
-            ["all", "Alle"],
-            ["active", "Actief"],
-            ["archived", "Gearchiveerd"],
-          ]}
-          onChange={(v) => setStatus(v as StatusFilter)}
-        />
-        <FilterGroup
-          label="Sorteer"
-          value={sort}
-          options={[
-            ["newest", "Nieuwste"],
-            ["oldest", "Oudste"],
-            ["clicks", "Meeste clicks"],
-            ["pageviews", "Meeste pageviews"],
-            ["longest", "Langst open"],
-          ]}
-          onChange={(v) => setSort(v as SortKey)}
-        />
-        <span className="ml-auto font-mono text-xs uppercase tracking-wider text-text-dim">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="font-mono text-[10.5px] uppercase tracking-wider text-text-dim">
+          Alle vacatures
+        </p>
+        <span className="font-mono text-xs uppercase tracking-wider text-text-dim">
           {filtered.length} / {vacatures.length}
         </span>
       </div>
@@ -98,49 +71,32 @@ export function VacaturesTable({
               <th className="px-3 py-3 text-right">WZ sollic.</th>
               <th className="px-3 py-3 text-right">RC kandid.</th>
               <th className="px-3 py-3 text-right">Salaris</th>
+              <th className="px-3 py-3 text-right">Urgentie</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((v) => (
-              <VacatureRow key={v.id} vacature={v} tijdreeks={tijdreeks} />
-            ))}
+            {filtered.map((v) => {
+              const urgency = computeUrgency({
+                dagen_online: v.dagen_online,
+                web_pageviews: v.web_pageviews,
+                wz_applications: v.wz_applications,
+                pv_last_14d: v.pv_last_14d,
+                pv_prev_14d: v.pv_prev_14d,
+                salary_min: v.salary_min,
+                description_length: v.description_length,
+              });
+              return (
+                <VacatureRow
+                  key={v.id}
+                  vacature={v}
+                  tijdreeks={tijdreeks}
+                  urgency={urgency}
+                />
+              );
+            })}
           </tbody>
         </table>
       </div>
-    </div>
-  );
-}
-
-function FilterGroup({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: [string, string][];
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="flex items-center gap-1.5 rounded-full border border-border bg-card p-1">
-      <span className="px-2 font-mono text-[10.5px] uppercase tracking-wider text-text-dim">
-        {label}
-      </span>
-      {options.map(([key, lbl]) => (
-        <button
-          key={key}
-          onClick={() => onChange(key)}
-          className={[
-            "rounded-full px-3 py-1 text-xs transition-colors",
-            value === key
-              ? "bg-accent-soft text-accent"
-              : "text-text-dim hover:text-text",
-          ].join(" ")}
-        >
-          {lbl}
-        </button>
-      ))}
     </div>
   );
 }
