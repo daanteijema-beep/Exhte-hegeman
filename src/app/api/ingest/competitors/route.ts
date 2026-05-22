@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
 import { openIngestionRun, closeIngestionRun } from "@/lib/ingest";
+import { requireCronAuthOrPost } from "@/lib/cron";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -149,7 +150,7 @@ async function scrapeBAM(): Promise<CompVac[]> {
   }
 }
 
-export async function POST() {
+async function run() {
   const runId = await openIngestionRun("competitors_dura");
   try {
     const [dura, heij, bam] = await Promise.all([
@@ -236,4 +237,16 @@ export async function POST() {
       { status: 500 }
     );
   }
+}
+
+export async function POST(req: NextRequest) {
+  const block = requireCronAuthOrPost(req);
+  if (block) return block;
+  return run();
+}
+
+export async function GET(req: NextRequest) {
+  const block = requireCronAuthOrPost(req);
+  if (block) return block;
+  return run();
 }

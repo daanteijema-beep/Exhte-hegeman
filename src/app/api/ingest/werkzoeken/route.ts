@@ -1,13 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
 import { openIngestionRun, closeIngestionRun } from "@/lib/ingest";
+import { requireCronAuthOrPost } from "@/lib/cron";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 const WZ = "https://api.werkzoeken.nl";
 
-export async function POST() {
+async function run() {
   const token = process.env.WERKZOEKEN_API_TOKEN;
   const company = process.env.WERKZOEKEN_COMPANY_ID;
   if (!token || !company) {
@@ -165,4 +167,16 @@ export async function POST() {
       { status: 500 }
     );
   }
+}
+
+export async function POST(req: NextRequest) {
+  const block = requireCronAuthOrPost(req);
+  if (block) return block;
+  return run();
+}
+
+export async function GET(req: NextRequest) {
+  const block = requireCronAuthOrPost(req);
+  if (block) return block;
+  return run();
 }
