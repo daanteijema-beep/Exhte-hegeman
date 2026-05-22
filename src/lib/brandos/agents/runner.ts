@@ -5,7 +5,11 @@ const MODEL = "claude-sonnet-4-20250514";
 const MAX_TOKENS = 8096;
 const MCP_BETA = "mcp-client-2025-04-04";
 
-export type AgentName = "concurrent" | "markt" | "analyse";
+export type AgentName =
+  | "concurrent_discover"
+  | "concurrent_analyse"
+  | "markt"
+  | "analyse";
 export type RunTrigger = "manual" | "cron" | "api";
 
 export interface RunResult {
