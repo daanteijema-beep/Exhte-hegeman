@@ -5,6 +5,7 @@ import { Badge } from "./Badge";
 import { Sparkline } from "./Sparkline";
 import { fmtInt, fmtEur, fmtDate } from "@/lib/format";
 import type { Vacature, WerkzoekenTijdreeks } from "@/lib/supabase/types";
+import type { UrgencyResult } from "@/lib/brandos/urgency";
 
 function statusBadge(status: string | null) {
   if (status === "published")
@@ -33,9 +34,11 @@ function salaris(v: Vacature) {
 export function VacatureRow({
   vacature,
   tijdreeks,
+  urgency,
 }: {
   vacature: Vacature;
   tijdreeks: WerkzoekenTijdreeks[];
+  urgency: UrgencyResult;
 }) {
   const [open, setOpen] = useState(false);
   const v = vacature;
@@ -79,10 +82,13 @@ export function VacatureRow({
           {fmtInt(v.rc_placements ?? 0)}
         </td>
         <td className="py-3 pr-3 text-right font-mono text-sm">{salaris(v)}</td>
+        <td className="py-3 pr-3 text-right">
+          <UrgencyPill score={urgency.score} />
+        </td>
       </tr>
       {open && (
         <tr className="border-b border-border bg-card/50">
-          <td colSpan={9} className="px-4 py-5">
+          <td colSpan={10} className="px-4 py-5">
             <div className="mb-4 grid grid-cols-3 gap-3">
               <Inline label="web pageviews" value={fmtInt(v.web_pageviews ?? 0)} />
               <Inline label="web sessies" value={fmtInt(v.web_sessions ?? 0)} />
@@ -178,10 +184,54 @@ export function VacatureRow({
                 </div>
               </div>
             </div>
+
+            <div className="mt-6 grid gap-3 md:grid-cols-3">
+              <V2Placeholder
+                title="Tekstkwaliteit-analyse"
+                hint="Komt zodra de analyse-agent per vacature draait"
+              />
+              <V2Placeholder
+                title="Markt-fit"
+                hint="Komt zodra brandos_market_research gevuld is"
+              />
+              <V2Placeholder
+                title="Acties"
+                hint="Herschrijf-tool · Genereer campagne — in V2"
+              />
+            </div>
           </td>
         </tr>
       )}
     </>
+  );
+}
+
+function UrgencyPill({ score }: { score: number }) {
+  const cls =
+    score >= 70
+      ? "bg-negative/15 text-negative"
+      : score >= 50
+        ? "bg-warning/15 text-warning"
+        : score >= 30
+          ? "bg-accent-soft text-accent"
+          : "bg-card-hover text-text-muted";
+  return (
+    <span
+      className={`inline-flex h-7 w-10 items-center justify-center rounded-full font-mono text-xs ${cls}`}
+    >
+      {score}
+    </span>
+  );
+}
+
+function V2Placeholder({ title, hint }: { title: string; hint: string }) {
+  return (
+    <div className="rounded-xl border border-dashed border-border/60 bg-card-hover/30 p-3">
+      <p className="font-mono text-[10.5px] uppercase tracking-wider text-text-dim">
+        {title}
+      </p>
+      <p className="mt-1 text-xs text-text-muted">{hint}</p>
+    </div>
   );
 }
 

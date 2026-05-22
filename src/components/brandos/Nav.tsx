@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const LINKS = [
-  { href: "/brandos", label: "Dashboard" },
+  { href: "/brandos", label: "Hub" },
   { href: "/brandos/campagnes", label: "Campagnes" },
-  { href: "/brandos/vacatures", label: "Vacatures" },
   { href: "/brandos/concurrentie", label: "Concurrentie" },
   { href: "/brandos/recruitee", label: "Recruitee" },
+  { href: "/brandos/insights", label: "Inzichten" },
   { href: "/brandos/bedrijf", label: "Bedrijf" },
 ] as const;
 
