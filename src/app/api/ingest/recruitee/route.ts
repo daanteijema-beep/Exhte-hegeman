@@ -7,6 +7,24 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+function htmlToText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|h[1-6]|li|ul|ol)>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .trim();
+}
+
 async function run() {
   const token = process.env.RECRUITEE_API_TOKEN;
   const company = process.env.RECRUITEE_COMPANY_ID;
@@ -60,9 +78,31 @@ async function run() {
     };
 
     const offers = offersData.offers ?? [];
+
+    // /offers list-endpoint geeft GEEN description — fetch per offer voor
+    // de volledige tekst (HTML wordt naar plain text gestript).
+    const detailMap = new Map<number, string>();
+    await Promise.all(
+      offers.map(async (o) => {
+        try {
+          const r = await fetch(`${base}/offers/${o.id}`, {
+            headers,
+            cache: "no-store",
+          });
+          if (!r.ok) return;
+          const d = (await r.json()) as { offer?: { description?: string; description_html?: string } };
+          const html = d.offer?.description ?? d.offer?.description_html ?? "";
+          const text = htmlToText(html);
+          if (text.length > 0) detailMap.set(o.id, text.slice(0, 5000));
+        } catch {
+          // best-effort: skip on failure
+        }
+      })
+    );
+
     if (offers.length > 0) {
       const offerRows = offers.map((o) => ({
-        id: `rc_${o.id}`,
+        id: `recruitee_${o.id}`,
         source_id: "recruitee_offers",
         origin: "recruitee",
         external_id: String(o.id),
@@ -75,7 +115,7 @@ async function run() {
         employment_type: o.employment_type ?? null,
         status: o.status ?? "draft",
         url: o.careers_url ?? o.url ?? null,
-        description: o.description?.slice(0, 5000) ?? null,
+        description: detailMap.get(o.id) ?? null,
         salary_min: o.salary?.min ?? null,
         salary_max: o.salary?.max ?? null,
         salary_currency: o.salary?.currency ?? null,

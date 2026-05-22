@@ -36,6 +36,15 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "skills",
+    "scripts",
+    ".next",
+    ".vercel",
+    ".adal", ".agents", ".augment", ".claude", ".codebuddy", ".commandcode",
+    ".continue", ".crush", ".factory", ".goose", ".iflow", ".junie",
+    ".kilocode", ".kiro", ".kode", ".mcpjam", ".mux", ".neovate",
+    ".openhands", ".pi", ".pochi", ".qoder", ".qwen", ".roo", ".trae",
+    ".vibe", ".windsurf", ".zencoder"
   ]
 }
