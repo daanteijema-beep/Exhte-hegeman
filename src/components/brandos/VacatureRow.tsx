@@ -59,10 +59,10 @@ export function VacatureRow({
         </td>
         <td className="py-3 pr-3 text-sm text-text-dim">{v.location ?? "–"}</td>
         <td className="py-3 pr-3">{statusBadge(v.status)}</td>
-        <td className="py-3 pr-3">
-          <Badge variant="ghost">{v.origin}</Badge>
-        </td>
         <td className="py-3 pr-3">{dagenBadge(v.dagen_open)}</td>
+        <td className="py-3 pr-3 text-right font-mono text-sm">
+          {v.web_pageviews ? fmtInt(v.web_pageviews) : <span className="text-text-muted">–</span>}
+        </td>
         <td className="py-3 pr-3 text-right font-mono text-sm">
           {fmtInt(v.wz_clicks ?? 0)}
         </td>
@@ -77,6 +77,11 @@ export function VacatureRow({
       {open && (
         <tr className="border-b border-border bg-card/50">
           <td colSpan={9} className="px-4 py-5">
+            <div className="mb-4 grid grid-cols-3 gap-3">
+              <Inline label="web pageviews" value={fmtInt(v.web_pageviews ?? 0)} />
+              <Inline label="web sessies" value={fmtInt(v.web_sessions ?? 0)} />
+              <Inline label="web users" value={fmtInt(v.web_users ?? 0)} />
+            </div>
             <div className="grid gap-6 md:grid-cols-3">
               <div>
                 <p className="font-mono text-[10.5px] uppercase tracking-wider text-text-dim">

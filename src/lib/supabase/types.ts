@@ -37,6 +37,9 @@ export type Vacature = {
   wz_application_starts: number | null;
   wz_avg_position: number | null;
   wz_cost: number | null;
+  web_pageviews: number | null;
+  web_sessions: number | null;
+  web_users: number | null;
   rc_placements: number | null;
   rc_qualified: number | null;
   dagen_open: number | null;

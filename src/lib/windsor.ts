@@ -297,23 +297,49 @@ type Ga4Row = {
 };
 
 export async function fetchGa4(range: string): Promise<MetricRow[]> {
-  const data = (await fetchWindsor("googleanalytics4", {
-    fields:
-      "date,sessions,active_users,bounce_rate,average_session_duration,screen_page_views,source,medium",
-    date_preset: range,
-    account_id: "387075288",
-  })) as Ga4Row[];
+  // Twee aparte calls: source/medium breakdown EN landing_page breakdown.
+  // Niet samen in 1 call want dat geeft een te grote cardinaliteit en
+  // dimensiecombinaties die niet logisch zijn.
+  const [bySource, byLanding] = await Promise.all([
+    fetchWindsor("googleanalytics4", {
+      fields:
+        "date,sessions,active_users,bounce_rate,average_session_duration,screen_page_views,source,medium",
+      date_preset: range,
+      account_id: "387075288",
+    }) as Promise<Ga4Row[]>,
+    fetchWindsor("googleanalytics4", {
+      fields:
+        "date,sessions,active_users,screen_page_views,landing_page",
+      date_preset: range,
+      account_id: "387075288",
+    }) as Promise<Ga4Row[]>,
+  ]);
+
+  const SOURCE_METRICS = [
+    "sessions",
+    "active_users",
+    "bounce_rate",
+    "average_session_duration",
+    "screen_page_views",
+  ] as const;
+  const LANDING_METRICS = [
+    "sessions",
+    "active_users",
+    "screen_page_views",
+  ] as const;
 
   const agg = new Map<string, MetricRow>();
-  for (const r of data) {
+
+  // Source / medium → entity_type='page', entity_id='source/medium'
+  for (const r of bySource) {
     if (!r.date) continue;
     const src = (r.source ?? "(direct)").trim();
     const med = (r.medium ?? "(none)").trim();
     const entity = `${src}/${med}`;
-    for (const m of GA4_METRICS) {
+    for (const m of SOURCE_METRICS) {
       const v = r[m];
       if (v === null || v === undefined) continue;
-      const k = `${entity}|${r.date}|${m}`;
+      const k = `sm|${entity}|${r.date}|${m}`;
       const num = Number(v);
       if (agg.has(k)) {
         const prev = agg.get(k)!;
@@ -334,5 +360,31 @@ export async function fetchGa4(range: string): Promise<MetricRow[]> {
       }
     }
   }
+
+  // Landing page → entity_type='landing_page', entity_id=path
+  for (const r of byLanding) {
+    if (!r.date) continue;
+    const lp = ((r as { landing_page?: string }).landing_page ?? "").trim();
+    if (!lp) continue;
+    for (const m of LANDING_METRICS) {
+      const v = r[m];
+      if (v === null || v === undefined) continue;
+      const k = `lp|${lp}|${r.date}|${m}`;
+      const num = Number(v);
+      if (agg.has(k)) {
+        agg.get(k)!.value += num;
+      } else {
+        agg.set(k, {
+          source_id: "ga4",
+          entity_type: "landing_page",
+          entity_id: lp,
+          metric_date: r.date,
+          metric: m,
+          value: num,
+        });
+      }
+    }
+  }
+
   return [...agg.values()];
 }

@@ -6,8 +6,7 @@ import { EmptyState } from "./EmptyState";
 import type { Vacature, WerkzoekenTijdreeks } from "@/lib/supabase/types";
 
 type StatusFilter = "all" | "active" | "archived";
-type OriginFilter = "all" | "recruitee" | "werkzoeken" | "website";
-type SortKey = "newest" | "oldest" | "clicks" | "longest";
+type SortKey = "newest" | "oldest" | "clicks" | "pageviews" | "longest";
 
 export function VacaturesTable({
   vacatures,
@@ -16,8 +15,7 @@ export function VacaturesTable({
   vacatures: Vacature[];
   tijdreeks: WerkzoekenTijdreeks[];
 }) {
-  const [status, setStatus] = useState<StatusFilter>("all");
-  const [origin, setOrigin] = useState<OriginFilter>("all");
+  const [status, setStatus] = useState<StatusFilter>("active");
   const [sort, setSort] = useState<SortKey>("newest");
 
   const filtered = useMemo(() => {
@@ -28,7 +26,6 @@ export function VacaturesTable({
       arr = arr.filter(
         (v) => v.status === "archived" || v.status === "closed"
       );
-    if (origin !== "all") arr = arr.filter((v) => v.origin === origin);
     if (sort === "newest")
       arr.sort(
         (a, b) =>
@@ -41,10 +38,12 @@ export function VacaturesTable({
       );
     if (sort === "clicks")
       arr.sort((a, b) => (b.wz_clicks ?? 0) - (a.wz_clicks ?? 0));
+    if (sort === "pageviews")
+      arr.sort((a, b) => (b.web_pageviews ?? 0) - (a.web_pageviews ?? 0));
     if (sort === "longest")
       arr.sort((a, b) => (b.dagen_open ?? 0) - (a.dagen_open ?? 0));
     return arr;
-  }, [vacatures, status, origin, sort]);
+  }, [vacatures, status, sort]);
 
   if (vacatures.length === 0) {
     return (
@@ -70,23 +69,13 @@ export function VacaturesTable({
           onChange={(v) => setStatus(v as StatusFilter)}
         />
         <FilterGroup
-          label="Bron"
-          value={origin}
-          options={[
-            ["all", "Alle"],
-            ["recruitee", "Recruitee"],
-            ["werkzoeken", "Werkzoeken"],
-            ["website", "Website"],
-          ]}
-          onChange={(v) => setOrigin(v as OriginFilter)}
-        />
-        <FilterGroup
           label="Sorteer"
           value={sort}
           options={[
             ["newest", "Nieuwste"],
             ["oldest", "Oudste"],
             ["clicks", "Meeste clicks"],
+            ["pageviews", "Meeste pageviews"],
             ["longest", "Langst open"],
           ]}
           onChange={(v) => setSort(v as SortKey)}
@@ -103,8 +92,8 @@ export function VacaturesTable({
               <th className="px-3 py-3">Titel</th>
               <th className="px-3 py-3">Locatie</th>
               <th className="px-3 py-3">Status</th>
-              <th className="px-3 py-3">Bron</th>
               <th className="px-3 py-3">Open</th>
+              <th className="px-3 py-3 text-right">Web views</th>
               <th className="px-3 py-3 text-right">WZ clicks</th>
               <th className="px-3 py-3 text-right">WZ sollic.</th>
               <th className="px-3 py-3 text-right">RC kandid.</th>
