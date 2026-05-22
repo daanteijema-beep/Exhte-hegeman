@@ -46,6 +46,10 @@ export type Vacature = {
   rc_placements: number | null;
   rc_qualified: number | null;
   dagen_open: number | null;
+  pv_last_14d: number | null;
+  pv_prev_14d: number | null;
+  trend_pct_14d: number | null;
+  description_length: number | null;
 };
 
 export type Campagne = {
