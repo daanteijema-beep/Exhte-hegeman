@@ -40,6 +40,9 @@ export type Vacature = {
   web_pageviews: number | null;
   web_sessions: number | null;
   web_users: number | null;
+  web_first_seen: string | null;
+  web_last_seen: string | null;
+  dagen_online: number | null;
   rc_placements: number | null;
   rc_qualified: number | null;
   dagen_open: number | null;

@@ -44,6 +44,12 @@ export function VacatureRow({
     .sort((a, b) => a.metric_date.localeCompare(b.metric_date))
     .slice(-30)
     .map((t) => Number(t.clicks ?? 0));
+  // Toon GA4-gebaseerde "dagen online" als deze beschikbaar is en groter is
+  // dan Recruitee's dagen_open — dan is dat de waarheid (Recruitee herpubliceert).
+  const dagen =
+    v.dagen_online && (v.dagen_online > (v.dagen_open ?? 0))
+      ? v.dagen_online
+      : v.dagen_open;
 
   return (
     <>
@@ -59,7 +65,7 @@ export function VacatureRow({
         </td>
         <td className="py-3 pr-3 text-sm text-text-dim">{v.location ?? "–"}</td>
         <td className="py-3 pr-3">{statusBadge(v.status)}</td>
-        <td className="py-3 pr-3">{dagenBadge(v.dagen_open)}</td>
+        <td className="py-3 pr-3">{dagenBadge(dagen)}</td>
         <td className="py-3 pr-3 text-right font-mono text-sm">
           {v.web_pageviews ? fmtInt(v.web_pageviews) : <span className="text-text-muted">–</span>}
         </td>
@@ -138,8 +144,22 @@ export function VacatureRow({
                 </p>
                 <div className="mt-3 space-y-1 text-xs">
                   <Inline
-                    label="gepubliceerd"
+                    label="RC gepubliceerd"
                     value={fmtDate(v.published_at)}
+                  />
+                  <Inline
+                    label="RC dagen open"
+                    value={`${v.dagen_open ?? "–"}d`}
+                  />
+                  <Inline
+                    label="GA4 eerste view"
+                    value={fmtDate(v.web_first_seen)}
+                  />
+                  <Inline
+                    label="GA4 dagen online"
+                    value={
+                      v.dagen_online ? `${v.dagen_online}d` : "–"
+                    }
                   />
                   <Inline
                     label="employment"
