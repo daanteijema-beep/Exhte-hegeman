@@ -11,5 +11,7 @@ export function requireCronAuthOrPost(req: NextRequest): NextResponse | null {
   if (!secret) return null; // niet geconfigureerd → open (dev)
   const header = req.headers.get("authorization");
   if (header === `Bearer ${secret}`) return null;
+  const token = req.nextUrl.searchParams.get("token");
+  if (token === secret) return null;
   return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 }
